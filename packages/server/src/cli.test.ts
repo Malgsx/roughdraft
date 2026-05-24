@@ -433,7 +433,7 @@ describe("cli", () => {
     });
   });
 
-  it("reports when opening in a Dia app window", async () => {
+  it("reports when opening in Dia", async () => {
     const test = createTestDependencies();
     const documentPath = path.join(projectDir, "draft.md");
     fs.writeFileSync(documentPath, "# Draft\n");
@@ -442,7 +442,7 @@ describe("cli", () => {
       ...test.deps,
       openUrl: (url) => {
         test.deps.openUrl(url);
-        return "dia-app";
+        return "dia-browser";
       },
     });
     const persisted = JSON.parse(
@@ -454,14 +454,14 @@ describe("cli", () => {
       expectedOpenUrl(`http://localhost:${persisted.port}`, documentPath),
     );
     expect(test.logs).toContain(
-      `Opened Roughdraft in a Dia app window: ${expectedOpenUrl(
+      `Opened Roughdraft in Dia: ${expectedOpenUrl(
         `http://localhost:${persisted.port}`,
         documentPath,
       )}`,
     );
   });
 
-  it("emits the Dia app open mode in JSON output", async () => {
+  it("emits the Dia open mode in JSON output", async () => {
     const test = createTestDependencies();
     const documentPath = path.join(projectDir, "draft.md");
     fs.writeFileSync(documentPath, "# Draft\n");
@@ -472,14 +472,14 @@ describe("cli", () => {
         ...test.deps,
         openUrl: (url) => {
           test.deps.openUrl(url);
-          return "dia-app";
+          return "dia-browser";
         },
       },
     );
     const payload = parseOnlyJsonLog<{ openMode: string }>(test.logs);
 
     expect(exitCode).toBe(0);
-    expect(payload.openMode).toBe("dia-app");
+    expect(payload.openMode).toBe("dia-browser");
   });
 
   it("prefers the live dev frontend URL when it matches this checkout", async () => {

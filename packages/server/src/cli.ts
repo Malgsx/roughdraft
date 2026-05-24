@@ -29,7 +29,7 @@ const SERVER_WAIT_DELAY_MS = 150;
 const PROCESS_WAIT_ATTEMPTS = 20;
 const PROCESS_WAIT_DELAY_MS = 150;
 const USAGE_ERROR = 2;
-const DIA_APP_EXECUTABLE_PATH = "/Applications/Dia.app/Contents/MacOS/Dia";
+const DIA_BUNDLE_IDENTIFIER = "company.thebrowser.dia";
 const KNOWN_COMMANDS = [
   "open",
   "start",
@@ -97,7 +97,7 @@ export interface CliDependencies {
 type OpenMode =
   | "browser"
   | "chrome-app"
-  | "dia-app"
+  | "dia-browser"
   | "disabled"
   | "existing-window"
   | "none";
@@ -611,7 +611,7 @@ function hasChromeAppMode() {
 
 function hasDiaAppMode() {
   if (process.platform !== "darwin") return false;
-  return fs.existsSync(DIA_APP_EXECUTABLE_PATH);
+  return spawnSync("open", ["-Ra", "Dia"], { stdio: "ignore" }).status === 0;
 }
 
 function openDetached(command: string, args: string[]) {
@@ -629,8 +629,8 @@ function defaultOpenUrl(url: string): OpenMode {
   }
 
   if (hasDiaAppMode()) {
-    openDetached(DIA_APP_EXECUTABLE_PATH, [`--app=${url}`]);
-    return "dia-app";
+    openDetached("open", ["-b", DIA_BUNDLE_IDENTIFIER, url]);
+    return "dia-browser";
   }
 
   if (hasChromeAppMode()) {
@@ -2690,8 +2690,8 @@ export async function runCli(
         if (!json) {
           if (openMode === "chrome-app") {
             deps.log(`Opened Roughdraft in a Chrome app window: ${targetUrl}`);
-          } else if (openMode === "dia-app") {
-            deps.log(`Opened Roughdraft in a Dia app window: ${targetUrl}`);
+          } else if (openMode === "dia-browser") {
+            deps.log(`Opened Roughdraft in Dia: ${targetUrl}`);
           } else if (openMode === "existing-window") {
             deps.log(`Reused an existing Roughdraft window: ${targetUrl}`);
           } else if (openMode === "browser") {
@@ -2734,8 +2734,8 @@ export async function runCli(
         return 0;
       }
 
-      if (openMode === "dia-app") {
-        deps.log(`Opened Roughdraft in a Dia app window: ${targetUrl}`);
+      if (openMode === "dia-browser") {
+        deps.log(`Opened Roughdraft in Dia: ${targetUrl}`);
         return 0;
       }
 
