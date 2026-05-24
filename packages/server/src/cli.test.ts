@@ -1,16 +1,16 @@
 import fs from "node:fs";
+import { createServer as createHttpServer, type Server } from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { createServer as createHttpServer, type Server } from "node:http";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createApp } from "./index";
 import {
   createCliDependencies,
   ensureServerRunning,
   getServerStateFilePath,
   runCli,
 } from "./cli";
+import { createApp } from "./index";
 import { ROUGHDRAFT_DEFAULT_PORT } from "./network";
 
 interface StartedServer {
@@ -431,6 +431,55 @@ describe("cli", () => {
       path: documentPath,
       openMode: "disabled",
     });
+  });
+
+  it("reports when opening in a Dia app window", async () => {
+    const test = createTestDependencies();
+    const documentPath = path.join(projectDir, "draft.md");
+    fs.writeFileSync(documentPath, "# Draft\n");
+
+    const exitCode = await runCli(["open", documentPath, "--no-watch"], {
+      ...test.deps,
+      openUrl: (url) => {
+        test.deps.openUrl(url);
+        return "dia-app";
+      },
+    });
+    const persisted = JSON.parse(
+      fs.readFileSync(getServerStateFilePath(test.deps.env), "utf8"),
+    ) as { port: number };
+
+    expect(exitCode).toBe(0);
+    expect(test.getLastOpenedUrl()).toBe(
+      expectedOpenUrl(`http://localhost:${persisted.port}`, documentPath),
+    );
+    expect(test.logs).toContain(
+      `Opened Roughdraft in a Dia app window: ${expectedOpenUrl(
+        `http://localhost:${persisted.port}`,
+        documentPath,
+      )}`,
+    );
+  });
+
+  it("emits the Dia app open mode in JSON output", async () => {
+    const test = createTestDependencies();
+    const documentPath = path.join(projectDir, "draft.md");
+    fs.writeFileSync(documentPath, "# Draft\n");
+
+    const exitCode = await runCli(
+      ["open", documentPath, "--no-watch", "--json"],
+      {
+        ...test.deps,
+        openUrl: (url) => {
+          test.deps.openUrl(url);
+          return "dia-app";
+        },
+      },
+    );
+    const payload = parseOnlyJsonLog<{ openMode: string }>(test.logs);
+
+    expect(exitCode).toBe(0);
+    expect(payload.openMode).toBe("dia-app");
   });
 
   it("prefers the live dev frontend URL when it matches this checkout", async () => {

@@ -1,10 +1,10 @@
+import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { spawn, spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 import {
   type RfmDiagnostic,
   validateRoughdraftMarkdown,
@@ -96,6 +96,7 @@ export interface CliDependencies {
 type OpenMode =
   | "browser"
   | "chrome-app"
+  | "dia-app"
   | "disabled"
   | "existing-window"
   | "none";
@@ -607,6 +608,11 @@ function hasChromeAppMode() {
   );
 }
 
+function hasDiaAppMode() {
+  if (process.platform !== "darwin") return false;
+  return spawnSync("open", ["-Ra", "Dia"], { stdio: "ignore" }).status === 0;
+}
+
 function openDetached(command: string, args: string[]) {
   const child = spawn(command, args, {
     detached: true,
@@ -619,6 +625,11 @@ function openDetached(command: string, args: string[]) {
 function defaultOpenUrl(url: string): OpenMode {
   if (process.env.ROUGHDRAFT_NO_OPEN === "1") {
     return "disabled";
+  }
+
+  if (hasDiaAppMode()) {
+    openDetached("open", ["-na", "Dia", "--args", `--app=${url}`]);
+    return "dia-app";
   }
 
   if (hasChromeAppMode()) {
@@ -2678,6 +2689,8 @@ export async function runCli(
         if (!json) {
           if (openMode === "chrome-app") {
             deps.log(`Opened Roughdraft in a Chrome app window: ${targetUrl}`);
+          } else if (openMode === "dia-app") {
+            deps.log(`Opened Roughdraft in a Dia app window: ${targetUrl}`);
           } else if (openMode === "existing-window") {
             deps.log(`Reused an existing Roughdraft window: ${targetUrl}`);
           } else if (openMode === "browser") {
@@ -2717,6 +2730,11 @@ export async function runCli(
       shouldPrintUpdateNotice = true;
       if (openMode === "chrome-app") {
         deps.log(`Opened Roughdraft in a Chrome app window: ${targetUrl}`);
+        return 0;
+      }
+
+      if (openMode === "dia-app") {
+        deps.log(`Opened Roughdraft in a Dia app window: ${targetUrl}`);
         return 0;
       }
 
