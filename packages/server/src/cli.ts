@@ -29,6 +29,7 @@ const SERVER_WAIT_DELAY_MS = 150;
 const PROCESS_WAIT_ATTEMPTS = 20;
 const PROCESS_WAIT_DELAY_MS = 150;
 const USAGE_ERROR = 2;
+const DIA_APP_EXECUTABLE_PATH = "/Applications/Dia.app/Contents/MacOS/Dia";
 const KNOWN_COMMANDS = [
   "open",
   "start",
@@ -610,7 +611,7 @@ function hasChromeAppMode() {
 
 function hasDiaAppMode() {
   if (process.platform !== "darwin") return false;
-  return spawnSync("open", ["-Ra", "Dia"], { stdio: "ignore" }).status === 0;
+  return fs.existsSync(DIA_APP_EXECUTABLE_PATH);
 }
 
 function openDetached(command: string, args: string[]) {
@@ -628,7 +629,7 @@ function defaultOpenUrl(url: string): OpenMode {
   }
 
   if (hasDiaAppMode()) {
-    openDetached("open", ["-na", "Dia", "--args", `--app=${url}`]);
+    openDetached(DIA_APP_EXECUTABLE_PATH, [`--app=${url}`]);
     return "dia-app";
   }
 
